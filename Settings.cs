@@ -4,7 +4,7 @@
     {
         private Settings()
         {
-            Tag = "Remove Stuck Vehicles [Fixed for v1.4+]";
+            Tag = "Remove Stuck Vehicles [Fixed for v1.6]";
         }
 
         private static readonly Settings _Instance = new Settings();
