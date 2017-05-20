@@ -96,6 +96,7 @@ namespace RemoveStuckVehicles
 
             if (id.Vehicle != 0)
             {
+                Helper.Instance.NotifyPlayer($"Registering vehicle {id.Vehicle} for removal.");
                 _helper.ManualRemovalRequests.Add(id.Vehicle);
             }
             else if (id.ParkedVehicle != 0)

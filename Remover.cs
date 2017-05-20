@@ -3,6 +3,7 @@ using ColossalFramework.Plugins;
 using ICities;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace RemoveStuckVehicles
 {
@@ -186,8 +187,10 @@ namespace RemoveStuckVehicles
                         }
                     }
 
+                    if (_helper.ManualRemovalRequests.Any())
+                        _helper.NotifyPlayer($"Removing {_helper.ManualRemovalRequests.Count} manually requested vehicle(s)");
                     foreach (ushort i in _helper.ManualRemovalRequests)
-                        RemoveVehicle(i);
+                        RemoveVehicle(i, true);
 
                     _helper.ManualRemovalRequests.Clear();
                 }
@@ -201,6 +204,7 @@ namespace RemoveStuckVehicles
                 error += e.StackTrace;
 
                 _helper.Log(error);
+                _helper.NotifyPlayer($"Skylines Stuck Vehicles Remover Terminated:{Environment.NewLine}{error}");
 
                 if (!_initialized)
                     _terminated = true;
@@ -280,7 +284,7 @@ namespace RemoveStuckVehicles
             base.OnReleased();
         }
 
-        private void RemoveVehicle(ushort vehicle)
+        private void RemoveVehicle(ushort vehicle, Boolean manual = false)
         {
             if (!remove_init)
             {
@@ -341,23 +345,32 @@ namespace RemoveStuckVehicles
 
             foreach (ushort i in removals)
             {
-                try
+                var targetVehicle = i;
+                var thread = new System.Threading.Thread(() =>
                 {
-                    instance.ReleaseVehicle(i);
-                }
-                catch (Exception e)
-                {
-                    string error = String.Format("Failed to release {0}\r\n", i);
-                    error += String.Format("Error: {0}\r\n", e.Message);
-                    error += "\r\n";
-                    error += "==== STACK TRACE ====\r\n";
-                    error += e.StackTrace;
-
-                    _helper.Log(error);
-                }
+                    try
+                    {
+                        instance.ReleaseVehicle(i);
+                    }
+                    catch (Exception e)
+                    {
+                        string error = String.Format("Failed to release {0}\r\n", i);
+                        error += String.Format("Error: {0}\r\n", e.Message);
+                        error += "\r\n";
+                        error += "==== STACK TRACE ====\r\n";
+                        error += e.StackTrace;
+                        _helper.Log(error);
+                        if (manual)
+                            _helper.NotifyPlayer($"Failed to remove vehicle: {i}{Environment.NewLine}{error}");
+                    }
+                });
+                thread.Start();
+                thread.Join();
             }
 
             SkylinesOverwatch.Helper.Instance.RequestVehicleRemoval(vehicle);
+            if (manual)
+                _helper.NotifyPlayer($"Successfully removed vehicle: {vehicle}");
         }
     }
 }
