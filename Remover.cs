@@ -257,70 +257,22 @@ namespace RemoveStuckVehicles
             }
         }
 
-        public void deleteParkedVehicle(uint citizenId)
+        public void deleteParkedVehicle(uint citizen)
         {
-            var citizenManager = Singleton<CitizenManager>.instance;
-            if (citizenManager = null)
-            {
-                _helper.Log("Citizen Manager is null");
-                return;
-            }
-
-            var vehicleManager = Singleton<VehicleManager>.instance;
-            if (vehicleManager == null)
-            {
-                _helper.Log("Vehicle Manager is null");
-                return;
-            }
-
-            var dataInstance = SkylinesOverwatch.Data.Instance;
-            if (dataInstance == null)
-            {
-                _helper.Log("Vehicle Manager is null");
-                return;
-            }
-
-            if (dataInstance.IsResident(citizenId))
+            if (!SkylinesOverwatch.Data.Instance.IsResident(citizen))
                 return;
 
-            Citizen citizen;
-            {
-                var citizenN = citizenManager.m_citizens?.m_buffer?[(int)((UIntPtr)citizenId)];
-                if (!citizenN.HasValue)
-                {
-                    _helper.Log($"`{nameof(citizenManager)}.{nameof(citizenManager.m_citizens)}` or `{nameof(citizenManager)}.{nameof(citizenManager.m_citizens)}.{nameof(citizenManager.m_citizens.m_buffer)}` is null.");
-                    return;
-                }
-                citizen = citizenN.Value;
-            }
-            var citizenInfo = citizen.GetCitizenInfo(citizenId);
-
-
+            CitizenInfo citizenInfo = Singleton<CitizenManager>.instance.m_citizens.m_buffer[(int)((UIntPtr)citizen)].GetCitizenInfo(citizen);
             InstanceID instanceID2;
-
-            var citizenAi = citizenInfo.m_citizenAI;
-            if (citizenAi == null)
-                return;
-
-            if (citizenAi.GetLocalizedStatus(citizenId, ref citizen, out instanceID2) != _citizen_confused)
-                return;
-            ushort parkedVehicleId = citizen.m_parkedVehicle;
-
-            if (parkedVehicleId <= 0)
-                return;
-
-            VehicleParked parkedVehicle;
+            if (citizenInfo.m_citizenAI.GetLocalizedStatus(citizen, ref Singleton<CitizenManager>.instance.m_citizens.m_buffer[(int)((UIntPtr)citizen)], out instanceID2) == _citizen_confused)
             {
-                var parkedVehicleN = vehicleManager.m_parkedVehicles?.m_buffer?[parkedVehicleId];
-                if (!parkedVehicleN.HasValue)
+                ushort parkedVehicle = Singleton<CitizenManager>.instance.m_citizens.m_buffer[citizen].m_parkedVehicle;
+                if (parkedVehicle > 0)
                 {
-                    _helper.Log($"`{nameof(vehicleManager)}.{nameof(vehicleManager.m_parkedVehicles)}` or `{nameof(vehicleManager)}.{nameof(vehicleManager.m_parkedVehicles)}.{nameof(vehicleManager.m_parkedVehicles.m_buffer)}` is null.");
-                    return;
+                    Singleton<VehicleManager>.instance.m_parkedVehicles.m_buffer[parkedVehicle].m_flags |= 2;
+                    Singleton<VehicleManager>.instance.ReleaseParkedVehicle(parkedVehicle);
                 }
-                parkedVehicle = parkedVehicleN.Value;
             }
-            parkedVehicle.m_flags |= 2;
-            vehicleManager.ReleaseParkedVehicle(parkedVehicleId);
         }
 
         public override void OnReleased ()
